@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+# 자리마다 다른 보정 결과와 큰 파일은 올리지 않음
+data/H.npy
+data/photos/
+data/*.pt
+*.pt
+.vscode/
