@@ -6,3 +6,6 @@ data/photos/
 data/*.pt
 *.pt
 .vscode/
+# 테스트 결과 (자리마다 다르고 사진이 커서 올리지 않음)
+data/pick_test/
+data/height_points.csv

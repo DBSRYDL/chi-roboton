@@ -10,7 +10,7 @@ WEIGHTS = os.path.join(DATA_DIR, "best.pt")
 # ----- 카메라 -----
 CAM_INDEX = 1            # tools/find_camera.py 로 확인
 W, H_IMG = 1280, 720
-TEAM = "yuuk"            # 사진 파일 이름 앞에 붙음
+TEAM = "team_4"            # 사진 파일 이름 앞에 붙음
 
 # ----- 검출 -----
 BACKEND = "hsv"          # "hsv" 또는 "yolo" (yolo는 data/best.pt 필요)
@@ -33,9 +33,9 @@ COLORS = ["wood", "red", "green", "blue"]   # 실제로 찾을 색. 나무색만
 MARKER_MM = {0: (0.0, 0.0), 1: (227.0, 0.0), 2: (227.0, 140.0), 3: (0.0, 140.0)}
 
 BLOCK_MM = 25.0          # 블록 한 변
-USE_HEIGHT_FIX = False   # 아래 두 값을 우리 거치대에서 다시 잰 뒤 True 로
-CAM_H_MM = 494.0         # 카메라 렌즈 높이 (튜터링 때 값, 다시 재야 함)
-NADIR_MM = (216.0, -109.0)   # 카메라 바로 아래 점의 작업판 좌표 (튜터링 때 값)
+USE_HEIGHT_FIX = False   # 11/20 22:03 처음 잘 되던 설정으로 되돌림. 켜면 관절 매핑을 다시 해야 함 (값은 아래 그대로 둠)
+CAM_H_MM = 400.0         # 바닥에서 카메라 렌즈까지 자로 잰 값 (11/20)
+NADIR_MM = (100.0, 76.3)     # 카메라 바로 아래 점 (작업판 mm). calib_height(400) + 로봇 놓기 테스트로 구함 (11/20)
 
 # 로봇 좌표: 원점 = 로봇 회전축, x = 로봇 정면, y = 로봇 왼쪽
 ROBOT_BASE = (357.0, 70.0)   # 작업판 좌표에서 로봇 회전축 위치 mm (11/18 측정: ID1-ID2 선에서 130mm, 세로 가운데)
@@ -47,13 +47,18 @@ N_FRAMES = 10                # 한 번 부를 때 찍는 프레임 수
 MERGE_MM = 15.0              # 이 거리 안의 검출은 같은 블록으로 봄
 
 # ----- 로봇팔 (arm.py) -----
-ARM_PORT = None              # 예: "COM5". tools/arm_probe.py 가 찾아 줌
-ARM_ID = None                # LeRobot 캘리브레이션 때 쓴 id (예: "my_follower"). arm_probe.py 가 목록을 보여 줌
+ARM_PORT = "COM5"             # 예: "COM5". tools/arm_probe.py 가 찾아 줌
+ARM_ID = "so101_full"          # 11/20 손목까지 전체 범위로 다시 캘리브레이션
 # IK 모델 각도 <-> LeRobot 모터 각도(도):  모델각 = SIGN * (모터각 - OFFSET)
 # 순서: shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll.  tools/arm_calib.py 로 구함
 ARM_SIGN = [1, 1, 1, 1, 1]
-ARM_OFFSET_DEG = [0.0, 0.0, 0.0, 0.0, 0.0]
-ARM_MAPPING_CHECKED = False  # arm_calib.py 로 확인한 뒤 True 로. False 면 arm.py 가 팔을 움직이지 않음
+ARM_OFFSET_DEG = [6.58, 5.09, 13.34, -16.43, -5.25]   # so101_full. 관절 1~4: 반복 테스트 15회 자료로 다시 맞춤 (11/20 23:30), 손목 회전: arm_roll_calib
+ARM_MAPPING_CHECKED = True   # 11/20 arm_place_calib로 확인 (RMS 4.5mm). 캘리브레이션을 다시 하면 False로
+ARM_DROOP_FIX = False        # 팔 무게로 처진 만큼 모터 목표를 더 밀어 줌. 처음 잘 되던 설정으로 되돌림
+PICK_Z_EXTRA_MM = 5.0        # 집기·놓기 높이에 더할 여유. 바닥을 긁어서 5로 (11/20). 그래도 긁으면 8, 블록을 놓치면 3
+JAW_CLEAR_MM = 8.0           # 고정 집게를 블록 옆면에서 띄우는 거리. 벌린 폭(약 47mm) - 블록 25mm 중 8은 고정 집게 쪽, 나머지는 움직이는 집게 쪽 여유
+MOTOR_TEMP_WARN = 50         # 모터 온도(도C)가 이 이상이면 경고, 반복 테스트는 식을 때까지 쉼
+MOTOR_TEMP_STOP = 60         # 이 이상이면 반복 테스트를 멈춤 (모터 보호. STS3215 자체 보호는 더 높은 온도에서 걸림)
 ARM_SPEED_DEG_S = 25.0       # 관절 최대 속도 (도/초). 처음에는 낮게
-GRIP_OPEN = None             # 그리퍼 벌린 값 (0~100). tools/arm_read.py 에서 손으로 벌려 보고 읽은 값
-GRIP_CLOSE = None            # 블록을 잡을 만큼 닫은 값
+GRIP_OPEN = 32.0             # so101_full 기준. 96이면 120mm나 벌어져서 옆 블록·바닥을 쓸음 -> 약 45~50mm 벌어지게 32 (11/20). 끝까지는 96
+GRIP_CLOSE = 9.0             # so101_full 기준. 블록에 닿을 때 11.7 -> 살짝 더 조이게 9

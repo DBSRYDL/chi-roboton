@@ -14,24 +14,30 @@ import so101_ik as K
 BOARD_POINTS = [(200, 50), (200, 100), (150, 50), (150, 100), (100, 50), (100, 100), (175, 75), (125, 75)]
 
 
-def tip_of(motor_deg, sign, offset):
+def tip_of(motor_deg, sign, offset, site=True):
+    """site=True: 고정 집게 손끝,  site=False: 집기 중심(TCP = 잡은 블록의 중심)"""
     q = np.radians(np.array(sign) * (np.asarray(motor_deg, float) - np.array(offset)))
-    return K.fk(q, site=True)[:3, 3]
+    return K.fk(q, site=site)[:3, 3]
 
 
-def fit(motors, points, prior=0.02):
+def fit(motors, points, prior=0.1, site=True, roll=None, center=None):
     """motors: N x 5 (도), points: N x 3 (mm).  반환: (sign 5개, offset 5개, rms mm)
-    손끝은 wrist_roll 축 위에 있어서 roll의 부호·영점은 여기서 못 구함 (1, 0 으로 둠)"""
+    wrist_roll의 부호·영점은 여기서 못 구하므로 roll=(부호, 영점)으로 받은 값에 고정 (없으면 config 값).
+    손목 회전은 arm_roll_calib.py로 따로 맞춥니다."""
+    import config as C
+    r_sign, r_off = roll if roll is not None else (C.ARM_SIGN[4], C.ARM_OFFSET_DEG[4])
+    # 점이 적거나 한쪽에 몰리면 값이 엉뚱하게 튈 수 있어서, 지금 config 값 근처를 선호하게 함 (10도 벗어나면 1mm 오차만큼 불리)
+    c0 = np.array(center if center is not None else C.ARM_OFFSET_DEG[:4], float)
     motors, points = np.asarray(motors, float), np.asarray(points, float)
     best = None
     for s4 in itertools.product([1, -1], repeat=4):
-        sign = list(s4) + [1]
-        off = np.zeros(4)
+        sign = list(s4) + [r_sign]
+        off = c0.copy()
 
         def res(o):
-            full = list(o) + [0.0]
-            r = np.concatenate([tip_of(m, sign, full) - p for m, p in zip(motors, points)])
-            return np.concatenate([r, prior * o])           # 영점은 0 근처일 거라는 약한 가정
+            full = list(o) + [r_off]
+            r = np.concatenate([tip_of(m, sign, full, site) - p for m, p in zip(motors, points)])
+            return np.concatenate([r, prior * (o - c0)])
 
         lam = 1.0
         f = res(off)
@@ -48,10 +54,10 @@ def fit(motors, points, prior=0.02):
                     break
             else:
                 lam *= 5
-        err = np.array([np.linalg.norm(tip_of(m, sign, list(off) + [0.0]) - p) for m, p in zip(motors, points)])
+        err = np.array([np.linalg.norm(tip_of(m, sign, list(off) + [r_off], site) - p) for m, p in zip(motors, points)])
         rms = float(np.sqrt(np.mean(err ** 2)))
         if best is None or rms < best[2]:
-            best = (sign, [round(float(v), 2) for v in off] + [0.0], rms, err)
+            best = (sign, [round(float(v), 2) for v in off] + [float(r_off)], rms, err)
     return best
 
 
